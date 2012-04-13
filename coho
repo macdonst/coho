@@ -8,6 +8,7 @@ var util           = require('util')
 ,   exec           = require('child_process').exec
 ,   fs			   = require('fs')
 ,   sys            = require('sys')
+,   js             = 'https://git-wip-us.apache.org/repos/asf/incubator-cordova-js.git'
 ,   ios            = 'https://git-wip-us.apache.org/repos/asf/incubator-cordova-ios.git'
 ,   blackberry     = 'https://git-wip-us.apache.org/repos/asf/incubator-cordova-blackberry-webworks.git'
 ,   android        = 'https://git-wip-us.apache.org/repos/asf/incubator-cordova-android.git'
@@ -15,6 +16,7 @@ var util           = require('util')
 ,   webos          = 'https://git-wip-us.apache.org/repos/asf/incubator-cordova-webos.git'
 ,   bada       	   = 'https://git-wip-us.apache.org/repos/asf/incubator-cordova-bada.git'
 ,   docs      	   = 'https://git-wip-us.apache.org/repos/asf/incubator-cordova-docs.git'
+,	jsdir	       = 'incubator-cordova-js'
 ,	iosdir	       = 'incubator-cordova-ios'
 ,	blackberrydir  = 'incubator-cordova-blackberry-webworks'
 ,	androiddir	   = 'incubator-cordova-android'
@@ -39,7 +41,7 @@ var util           = require('util')
 var commandQueue = [],
     child;
 
-var requiredSoftware = ["git", "jodoc", "markdown"];
+var requiredSoftware = ["jake", "git", "jodoc", "markdown"];
 
 function queueCommand(cmd) {
     commandQueue.push(cmd);
@@ -90,6 +92,12 @@ checkSoftware();
 queueCommand("rm -rf temp && mkdir temp && cd temp && mkdir repositories && mkdir release");
 queueCommand("cd temp/release && mkdir bin && mkdir src && cd bin && mkdir ios && mkdir android && mkdir blackberry && mkdir windows && mkdir webos && mkdir symbian && mkdir bada");
 
+//common js
+queueCommand("echo 'Building Common JavaScript'");
+queueCommand("cd " + tempRepoDir + " && git clone "+js+" && cd "+jsdir+" && git fetch --tags && git checkout "+VERSION);
+queueCommand("cd " + tempRepoDir + " && cp -r " + jsdir + " " + releaseSrcDir);
+queueCommand("cd " + tempRepoDir + "/"+jsdir+" && jake");
+
 //ios
 if (PLATFORM === "all" || PLATFORM === "ios") {
     queueCommand("echo 'Building iOS'");
@@ -120,7 +128,7 @@ if (PLATFORM === "all" || PLATFORM === "android") {
     queueCommand("cd " + tempRepoDir + "/"+androiddir+" && ./bin/create");
     queueCommand("cd " + tempRepoDir + "/"+androiddir+" && cp -rp example " + androidReleaseBinDir + "/example");
     queueCommand("cd " + tempRepoDir + "/"+androiddir+"/example && cp libs/cordova-"+VERSION+".jar ../" + androidReleaseBinDir);
-    queueCommand("cd " + tempRepoDir + "/"+androiddir+"/example && cp assets/www/cordova-"+VERSION+".js ../" + androidReleaseBinDir);
+    queueCommand("cd " + tempRepoDir + "/"+androiddir+"/example && cp ../../" + jsdir + "/pkg/cordova.android.js ../" + androidReleaseBinDir + "/cordova-"+VERSION+".js");
     queueCommand("cd " + tempRepoDir + "/"+androiddir+"/example && cp -r res/xml ../" + androidReleaseBinDir);
 }
 
@@ -220,10 +228,10 @@ queueCommand("echo 'Zipping and signing src'");
 queueCommand("cd temp/release/src && zip -rq "+ cordovaSrcZip +" * && gpg --armor --output "+cordovaSrcAsc+" --detach-sig "+cordovaSrcZip+" && gpg --print-md MD5 "+cordovaSrcZip+" > " + cordovaSrcMd5 +" && gpg --print-md SHA512 " + cordovaSrcZip + " > " + cordovaSrcSha);
 
 // clean up
-queueCommand("echo 'Final clean up'");
-queueCommand("cd temp/release/bin && ls | grep -v "+cordovaBinZip+" | xargs rm -r");
-queueCommand("cd temp/release/doc && ls | grep -v "+cordovaDocZip+" | xargs rm -r");
-queueCommand("cd temp/release/src && ls | grep -v "+cordovaSrcZip+" | xargs rm -r");
+//queueCommand("echo 'Final clean up'");
+//queueCommand("cd temp/release/bin && ls | grep -v "+cordovaBinZip+" | xargs rm -r");
+//queueCommand("cd temp/release/doc && ls | grep -v "+cordovaDocZip+" | xargs rm -r");
+//queueCommand("cd temp/release/src && ls | grep -v "+cordovaSrcZip+" | xargs rm -r");
 executeCommands(function(){
 	exec("say DONE", function(e, stdout, stderr) {
 	});
